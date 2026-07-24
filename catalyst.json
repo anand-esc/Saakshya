@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "targets": [
+      "relational_graph",
+      "relational_action_log"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}
