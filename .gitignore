@@ -1,0 +1,35 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / local artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Catalyst / deployment artifacts
+.catalyst/
+*.zip
+*.tar.gz
+
+# Local seed outputs if you want to avoid committing generated data
+# Uncomment if you do not want generated CSVs tracked
+# data/seed/output/
+
+# Local scratch / debug (not part of the deliverable)
+bundle-check/
+tmp_*.py
