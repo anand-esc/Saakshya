@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relational Intelligence - Test UI</title>
+    <!-- Cytoscape.js for Graph Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; }
+        .container { display: flex; flex: 1; gap: 20px; }
+        .sidebar { width: 300px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 20px; }
+        .graph-container { flex: 1; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; }
+        #cy { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        h3 { margin-top: 0; color: #333; }
+        input, select, button { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .panel { padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        #edge-details { display: none; background: #f9f9f9; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <h2>Saakshya: Relational Intelligence (Track B)</h2>
+
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            
+            <!-- Auth Panel -->
+            <div class="panel">
+                <h3>1. Authentication</h3>
+                <input type="email" id="email" placeholder="Email Address">
+                <input type="password" id="password" placeholder="Password">
+                <button onclick="login()">Log In</button>
+                <div id="auth-status" style="font-size: 0.85em; color: #666; margin-top: 5px;">Not logged in</div>
+            </div>
+
+            <!-- Graph Load Panel -->
+            <div class="panel">
+                <h3>2. Graph Builder</h3>
+                <button onclick="loadGraph()">Load Network Graph</button>
+            </div>
+
+            <!-- Action Log Panel -->
+            <div class="panel" style="border-bottom: none;">
+                <h3>3. Action Log (Acknowledge)</h3>
+                <select id="targetType">
+                    <option value="prediction">Prediction (Risk Flag)</option>
+                    <option value="edge">Edge (Suggested Link)</option>
+                </select>
+                <input type="text" id="targetId" placeholder="Target ID (e.g. p_102)">
+                <input type="text" id="reasonCode" placeholder="Reason Code (e.g. verified_true)">
+                <button onclick="acknowledge()">Acknowledge</button>
+                <div id="ack-status" style="font-size: 0.85em; margin-top: 5px;"></div>
+            </div>
+
+            <!-- Edge Evidence Details (Populates on click) -->
+            <div id="edge-details">
+                <strong>Edge Details (Evidence)</strong>
+                <div id="edge-content" style="margin-top: 5px;"></div>
+            </div>
+
+        </div>
+
+        <!-- Cytoscape Graph Render Area -->
+        <div class="graph-container">
+            <div id="cy"></div>
+        </div>
+    </div>
+
+    <script>
+        // Session token held in plain JS variable as requested
+        let sessionToken = null;
+        let cy = null;
+
+        // 1. Auth Login (Hits Catalyst Auth endpoint to grab token/cookie)
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const statusDiv = document.getElementById('auth-status');
+            
+            statusDiv.textContent = "Logging in...";
+            
+            try {
+                // Hitting the local catalyst auth login endpoint
+                const response = await fetch('/__catalyst/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_id: email, password: password })
+                });
+
+                if (response.ok) {
+                    // Usually catalyst sets a cookie, but if a token is returned we grab it
+                    const data = await response.json().catch(() => ({})); 
+                    sessionToken = data.access_token || "cookie-based-session";
+                    statusDiv.textContent = "Logged in successfully!";
+                    statusDiv.style.color = "green";
+                } else {
+                    statusDiv.textContent = "Login failed. Check credentials.";
+                    statusDiv.style.color = "red";
+                }
+            } catch (err) {
+                // Fallback for hackathon MVP if local serve endpoint acts weird
+                console.warn("Login endpoint failed, assuming mock/cookie mode", err);
+                sessionToken = "mocked-mvp-session";
+                statusDiv.textContent = "Logged in (Dev Mode)";
+                statusDiv.style.color = "orange";
+            }
+        }
+
+        // 2. Load Graph
+        async function loadGraph() {
+            if (!sessionToken) {
+                alert("Please log in first!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/server/relational_graph/graph');
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert("Error loading graph: " + data.error);
+                    return;
+                }
+
+                renderGraph(data.nodes, data.edges);
+            } catch (err) {
+                console.error("Failed to load graph", err);
+                alert("Failed to load graph. Make sure the backend is running via `catalyst serve`.");
+            }
+        }
+
+        function renderGraph(nodesData, edgesData) {
+            const elements = [];
+
+            // Add Nodes
+            nodesData.forEach(n => {
+                elements.push({
+                    data: { 
+                        id: n.id, 
+                        label: n.name || n.value || n.id,
+                        type: n.type,
+                        community: n.community 
+                    }
+                });
+            });
+
+            // Add Edges
+            edgesData.forEach(e => {
+                elements.push({
+                    data: { 
+                        id: e.id, 
+                        source: e.node_a_id, 
+                        target: e.node_b_id,
+                        relation: e.relation
+                    }
+                });
+            });
+
+            cy = cytoscape({
+                container: document.getElementById('cy'),
+                elements: elements,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': function(ele) {
+                                // Color by Louvain community if available
+                                const comm = ele.data('community');
+                                const colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2'];
+                                return comm !== undefined ? colors[comm % colors.length] : '#888';
+                            },
+                            'label': 'data(label)',
+                            'color': '#333',
+                            'font-size': '10px',
+                            'text-valign': 'bottom',
+                            'text-margin-y': '5px'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#ccc',
+                            'target-arrow-color': '#ccc',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': 'data(relation)',
+                            'font-size': '8px',
+                            'text-rotation': 'autorotate',
+                            'color': '#888'
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'cose',
+                    padding: 30,
+                    idealEdgeLength: 100
+                }
+            });
+
+            // Evidence-on-click for edges
+            cy.on('tap', 'edge', async function(evt){
+                const edge = evt.target;
+                const edgeId = edge.data('id');
+                
+                const detailsDiv = document.getElementById('edge-details');
+                const contentDiv = document.getElementById('edge-content');
+                
+                detailsDiv.style.display = 'block';
+                contentDiv.innerHTML = "<em>Loading evidence...</em>";
+                
+                try {
+                    const res = await fetch(`/server/relational_graph/graph/edge/${edgeId}`);
+                    const edgeData = await res.json();
+                    
+                    if (edgeData.error) {
+                        contentDiv.innerHTML = `<span style="color:red;">Error: ${edgeData.error}</span>`;
+                        return;
+                    }
+
+                    contentDiv.innerHTML = `
+                        <strong>Relation:</strong> ${edgeData.relation}<br>
+                        <strong>Source Type:</strong> ${edgeData.source_record_type}<br>
+                        <strong>Record Data:</strong> <pre style="font-size:0.8em; overflow-x:auto;">${JSON.stringify(edgeData.source_record, null, 2)}</pre>
+                    `;
+                } catch (err) {
+                    contentDiv.innerHTML = `<span style="color:red;">Failed to fetch</span>`;
+                }
+            });
+        }
+
+        // 3. Action Log Acknowledge
+        async function acknowledge() {
+            if (!sessionToken) {
+                alert("Please log in first!");
+                return;
+            }
+
+            const targetType = document.getElementById('targetType').value;
+            const targetId = document.getElementById('targetId').value;
+            const reasonCode = document.getElementById('reasonCode').value;
+            const statusDiv = document.getElementById('ack-status');
+
+            if (!targetId || !reasonCode) {
+                alert("Please fill out Target ID and Reason Code");
+                return;
+            }
+
+            statusDiv.textContent = "Submitting...";
+            statusDiv.style.color = "#666";
+
+            try {
+                const response = await fetch('/server/relational_action_log/acknowledge', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}` // Included just in case API gateway requires it
+                    },
+                    body: JSON.stringify({
+                        target_type: targetType,
+                        target_id: targetId,
+                        reason_code: reasonCode
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.textContent = "Success! Logged to DB.";
+                    statusDiv.style.color = "green";
+                } else {
+                    statusDiv.textContent = "Failed: " + (data.error || "Unknown Error");
+                    statusDiv.style.color = "red";
+                }
+            } catch (err) {
+                console.error("Ack failed", err);
+                statusDiv.textContent = "Request failed. Check console.";
+                statusDiv.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>

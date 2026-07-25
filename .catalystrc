@@ -10,27 +10,19 @@
   "projects": [
     {
       "idx": 1,
-      "id": "45318000000017001",
-      "name": "Saakshya",
+      "id": "51507000000013048",
+      "name": "saakshya",
       "domain": {
-        "id": "50044326563",
-        "name": "saakshya-60079530814.development"
+        "id": "50044316017",
+        "name": "saakshya-60079877134.development"
       },
       "timezone": "Asia/Kolkata",
       "env": [
         {
           "idx": 1,
-          "id": "60079530814",
+          "id": "60079877134",
           "name": "Development",
-          "type": 3,
-          "env_status": "Active",
-          "project_details": {
-            "project_name": "Saakshya",
-            "id": "45318000000017001",
-            "project_type": "Live"
-          },
-          "is_default": true,
-          "action_required": false
+          "type": 3
         }
       ]
     }

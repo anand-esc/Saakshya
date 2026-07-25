@@ -2,7 +2,9 @@
   "functions": {
     "targets": [
       "spatial_bias_audit",
-      "spatial_hotspots"
+      "spatial_hotspots",
+      "relational_graph",
+      "relational_action_log"
     ],
     "ignore": [],
     "source": "functions"
