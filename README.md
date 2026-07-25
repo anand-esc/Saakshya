@@ -34,9 +34,9 @@ Saakshya is an explainable crime-intelligence layer for Karnataka State Police/S
 **Owner: Sibam**
 
 - **Adaptive Hotspot Mapping + Data-Sufficiency Badge**
-  <!-- TODO: 2-3 sentences — KDE/DBSCAN/Getis-Ord Gi*, what the badge shows (green/amber/grey), why it matters (doesn't hallucinate confidence in sparse-data areas) -->
+  Uses KDE, DBSCAN, and Getis-Ord Gi* to dynamically map high-risk crime areas. To prevent the system from hallucinating confidence in sparse regions, the map overlays a visible data-sufficiency badge (green/amber/grey) that honestly reflects the volume of underlying data.
 - **Bias Audit Panel**
-  <!-- TODO: 2-3 sentences — FPR-by-district metric, what it displays, why FPR was chosen over overall accuracy for a policing context -->
+  Displays the False Positive Rate (FPR) parity across different districts. FPR was chosen over overall accuracy for this policing context because a false positive directs real patrol resources and officer attention at bad signals; publishing the FPR ensures the system's error pattern is transparent.
 
 **Endpoints:**
 ```
