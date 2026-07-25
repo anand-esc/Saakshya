@@ -74,22 +74,13 @@ def handler(request: Request):
             # Sort suggested links by score
             suggested_links = sorted(suggested_links, key=lambda x: x["score"], reverse=True)[:50] # Top 50 suggestions
             
-            # Map suggested links into edges payload
-            for sl in suggested_links:
-                graph_edges.append({
-                    "id": f"suggested_{sl['source']}_{sl['target']}",
-                    "node_a_id": sl["source"],
-                    "node_b_id": sl["target"],
-                    "relation": "suggested_link",
-                    "score": sl["score"]
-                })
-            
             # Format output
             output_nodes = list(nodes_data.values())
             
             return jsonify({
                 "nodes": output_nodes,
-                "edges": graph_edges
+                "edges": graph_edges,
+                "suggested_links": suggested_links
             }), 200
             
         except Exception as e:
