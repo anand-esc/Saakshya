@@ -1,0 +1,30 @@
+{
+  "defaults": {
+    "project": 1,
+    "env": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "51507000000013048",
+      "name": "saakshya",
+      "domain": {
+        "id": "50044316017",
+        "name": "saakshya-60079877134.development"
+      },
+      "timezone": "Asia/Kolkata",
+      "env": [
+        {
+          "idx": 1,
+          "id": "60079877134",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}
