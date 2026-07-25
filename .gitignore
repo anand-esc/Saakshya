@@ -29,3 +29,7 @@ Thumbs.db
 # Local seed outputs if you want to avoid committing generated data
 # Uncomment if you do not want generated CSVs tracked
 # data/seed/output/
+
+# Local scratch / debug (not part of the deliverable)
+bundle-check/
+tmp_*.py
