@@ -1,7 +1,7 @@
 {
     "deployment": {
         "name": "spatial_bias_audit",
-        "stack": "python_3_13",
+        "stack": "python_3_9",
         "type": "advancedio",
         "env_variables": {}
     },

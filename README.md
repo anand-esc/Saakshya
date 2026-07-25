@@ -71,10 +71,7 @@ POST /action-log/acknowledge     → { target_type, target_id, user_id, reason_c
 
 ## Architecture
 
-<!-- TODO: one diagram or short paragraph — two independent backend tracks (spatial,
-     relational) sharing one Data Store and one Authentication layer, fronted by a
-     single Slate dashboard. Mention the deliberate table-ownership split if it's a
-     talking point worth keeping. -->
+Saakshya runs as two independently deployable Catalyst function tracks sharing a single Data Store and a single Catalyst Authentication layer. Spatial Intelligence (hotspot mapping, bias audit) and Relational Intelligence (network graph, action log) each own a disjoint set of Data Store tables and were built on separate git branches with zero shared code, merging only through one shared, CLI-managed catalyst.json. Both tracks are fronted by a single Slate dashboard, which is the only layer where the two feature sets are actually wired together.
 
 ---
 
