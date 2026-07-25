@@ -114,10 +114,9 @@ catalyst init
 catalyst serve
 ```
 
-<!-- TODO: add Python 3.9 requirement note + seed data setup instructions once
-     data/seed/seed_output/ is committed -->
-
 Requires **Python 3.9** specifically (Catalyst's supported runtime ceiling) — see [`schema.md`](./schema.md) for the full environment setup used during development.
+
+**Note:** Seed data is pre-loaded in `data/seed/output/`, no manual setup needed.
 
 ---
 
@@ -132,11 +131,13 @@ Requires **Python 3.9** specifically (Catalyst's supported runtime ceiling) — 
 
 ## Team
 
-| Name | Track |
+| Name | Role / Track |
 |---|---|
 | Sibam | Spatial Intelligence (Track A) |
 | Suryansh | Relational Intelligence (Track B) |
-<!-- TODO: add Pritam/Supriya, Ananya, or anyone else on frontend/deck if they should be credited here -->
+| Pritam | Slate Frontend |
+| Supriya | Slate Frontend |
+| Ananya | Pitch Deck & Presentation |
 
 ---
 
