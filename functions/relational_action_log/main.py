@@ -59,8 +59,10 @@ def handler(request: Request):
             insert_resp = table.insert_row(new_log)
             
             return jsonify({
-                "message": "Acknowledgment successful",
-                "action_log": insert_resp
+                "target_type": target_type,
+                "target_id": target_id,
+                "user_id": user_id,
+                "reason_code": reason_code
             }), 200
             
         except Exception as e:
