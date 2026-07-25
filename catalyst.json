@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "targets": [
+      "spatial_bias_audit",
+      "spatial_hotspots"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}
