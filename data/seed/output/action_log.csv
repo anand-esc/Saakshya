@@ -1,1 +1,3 @@
-id,case_id,user_id,action,timestamp,notes
+id,case_id,user_id,action,timestamp,notes,target_type,target_id,reason_code,action_timestamp
+3f8f76b4-9ae5-47a6-9fdd-398b3adfc5bb,,USER-0001,,,,edge,EDGE-EVID-01,verified,2026-07-26 10:22:59
+fddbe7cd-0a71-47f4-8804-af01b4086951,,USER-0001,,,,edge,EDGE-EVID-01,verified,2026-07-26 16:13:10
