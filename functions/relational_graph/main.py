@@ -54,16 +54,30 @@ def handler(request: Request):
             add_nodes(cases_resp, "cases", "case")
             
             graph_edges = []
+            suggested_links = []
+            
             for e in edges_data:
                 if e.get("source_id") and e.get("target_id"):
                     G.add_edge(e["source_id"], e["target_id"], id=e.get("id"), relation=e.get("edge_type"), weight=e.get("weight"))
-                    graph_edges.append({
-                        "node_a_id": e["source_id"],
-                        "node_b_id": e["target_id"],
-                        "id": e.get("id"),
-                        "relation": e.get("edge_type"),
-                        "weight": e.get("weight")
-                    })
+                    
+                    source_record_type = e.get("source_record_type")
+                    if source_record_type in ("arrest_report", "call_log", "address_record"):
+                        graph_edges.append({
+                            "node_a_id": e["source_id"],
+                            "node_b_id": e["target_id"],
+                            "id": e.get("id"),
+                            "relation": e.get("edge_type"),
+                            "weight": e.get("weight"),
+                            "source_record_type": source_record_type,
+                            "source_record_id": e.get("source_record_id")
+                        })
+                    else:
+                        suggested_links.append({
+                            "source": e["source_id"],
+                            "target": e["target_id"],
+                            "score": e.get("weight"),
+                            "relation": e.get("edge_type")
+                        })
             
             # Louvain Community Detection
             communities = nx.community.louvain_communities(G)
@@ -74,7 +88,6 @@ def handler(request: Request):
             
             # Adamic-Adar Link Scoring (suggested unconfirmed connections)
             # Calculate for node pairs that are not connected but are in the same community or share a neighbor
-            suggested_links = []
             try:
                 preds = nx.adamic_adar_index(G)
                 for u, v, p in preds:
@@ -127,11 +140,19 @@ def handler(request: Request):
             relation = edge_data.get("edge_type")
             weight = edge_data.get("weight")
             
-            source_record = {"id": edge_data.get("source_id"), "target": edge_data.get("target_id"), "note": f"Edge weight: {weight}"}
+            source_record_type = edge_data.get("source_record_type") or "derived_edge"
+            source_record_id = edge_data.get("source_record_id")
+            
+            source_record = {
+                "id": source_record_id if source_record_id else edge_data.get("source_id"), 
+                "target": edge_data.get("target_id"), 
+                "note": f"Edge weight: {weight}"
+            }
                     
             return jsonify({
+                "id": edge_id,
                 "relation": relation,
-                "source_record_type": "derived_edge",
+                "source_record_type": source_record_type,
                 "source_record": source_record
             }), 200
             
