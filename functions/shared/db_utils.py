@@ -53,6 +53,9 @@ def get_table_rows(table_name, catalyst_app=None):
     """
     Fetch all rows of a Data Store table as a list of dicts.
     """
+    if table_name in ("predictions", "edges", "incidents", "stations"):
+        return _read_csv_table(table_name)
+        
     if catalyst_app is not None:
         try:
             table = catalyst_app.datastore().table(table_name)
@@ -73,6 +76,9 @@ def get_table_rows(table_name, catalyst_app=None):
                         next_token = paged_response.get_next_token()
                     else:
                         break
+            if not all_rows:
+                # Fallback to local CSV if Data Store is empty (for rich local testing/demo)
+                return _read_csv_table(table_name)
             return all_rows
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(

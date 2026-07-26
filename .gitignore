@@ -33,3 +33,8 @@ Thumbs.db
 # Local scratch / debug (not part of the deliverable)
 bundle-check/
 tmp_*.py
+
+# Local debug outputs
+.build/
+*.json
+runtime_test_*

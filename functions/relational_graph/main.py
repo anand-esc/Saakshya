@@ -9,12 +9,23 @@ def handler(request: Request):
     
     if request.path == "/graph" and request.method == "GET":
         case_id = request.args.get("case_id")
+        import os, sys
+        _cur = os.path.dirname(os.path.abspath(__file__))
+        _possible_paths = [
+            _cur,
+            os.path.join(_cur, "shared"),
+            os.path.join(_cur, "..", "shared"),
+            os.path.join(_cur, "..", "..", "..", "functions", "shared")
+        ]
+        for _p in _possible_paths:
+            if os.path.exists(_p) and _p not in sys.path:
+                sys.path.insert(0, _p)
+        import db_utils
         
         try:
             zcql = app.zcql()
             
-            # Fetch all edges
-            edges_resp = zcql.execute_query("SELECT ROWID, id, node_a_type, node_a_id, node_b_type, node_b_id, relation, source_record_type, source_record_id FROM edges")
+            edges_data = db_utils.get_table_rows("edges")
             
             # Fetch all nodes (for simplicity in MVP, we pull all and map them)
             suspects_resp = zcql.execute_query("SELECT id, name, age, gender, prior_offense_count FROM suspects")
@@ -43,11 +54,16 @@ def handler(request: Request):
             add_nodes(cases_resp, "cases", "case")
             
             graph_edges = []
-            for row in edges_resp:
-                e = row.get("edges", {})
-                if e.get("node_a_id") and e.get("node_b_id"):
-                    G.add_edge(e["node_a_id"], e["node_b_id"], id=e.get("id"), relation=e.get("relation"), source_record_type=e.get("source_record_type"), source_record_id=e.get("source_record_id"))
-                    graph_edges.append(e)
+            for e in edges_data:
+                if e.get("source_id") and e.get("target_id"):
+                    G.add_edge(e["source_id"], e["target_id"], id=e.get("id"), relation=e.get("edge_type"), weight=e.get("weight"))
+                    graph_edges.append({
+                        "node_a_id": e["source_id"],
+                        "node_b_id": e["target_id"],
+                        "id": e.get("id"),
+                        "relation": e.get("edge_type"),
+                        "weight": e.get("weight")
+                    })
             
             # Louvain Community Detection
             communities = nx.community.louvain_communities(G)
@@ -89,41 +105,33 @@ def handler(request: Request):
 
     elif request.path.startswith("/graph/edge/") and request.method == "GET":
         edge_id = request.path.split("/")[-1]
+        import os, sys
+        _cur = os.path.dirname(os.path.abspath(__file__))
+        _possible_paths = [
+            _cur,
+            os.path.join(_cur, "shared"),
+            os.path.join(_cur, "..", "shared"),
+            os.path.join(_cur, "..", "..", "..", "functions", "shared")
+        ]
+        for _p in _possible_paths:
+            if os.path.exists(_p) and _p not in sys.path:
+                sys.path.insert(0, _p)
+        import db_utils
         try:
-            zcql = app.zcql()
-            edges_resp = zcql.execute_query(f"SELECT relation, source_record_type, source_record_id FROM edges WHERE id = '{edge_id}'")
-            if not edges_resp:
+            edges_data = db_utils.get_table_rows("edges")
+            edge_data = next((e for e in edges_data if e.get("id") == edge_id), None)
+            
+            if not edge_data:
                 return jsonify({"error": "Edge not found"}), 404
                 
-            edge_data = edges_resp[0].get("edges", {})
-            relation = edge_data.get("relation")
-            source_type = edge_data.get("source_record_type")
-            source_id = edge_data.get("source_record_id")
+            relation = edge_data.get("edge_type")
+            weight = edge_data.get("weight")
             
-            # Fetch the actual source record (evidence-on-click)
-            source_record = {}
-            if source_type and source_id:
-                # The exact table name for the source record might need mapping, e.g. 'arrest_report' -> 'arrest_reports'
-                # Assuming the source_type is the table name for now, or you can map it:
-                table_map = {
-                    "arrest_report": "arrest_reports", # Wait, these tables don't exist in our schema? 
-                    "call_log": "call_logs",
-                    "address_record": "addresses"
-                }
-                # Actually, wait. The schema doc says: "source_record_type | STRING | arrest_report, call_log, address_record". 
-                # But it doesn't give us arrest_reports table! I will just return the raw ID and type for the UI to display, 
-                # or query it if it's in our tables (like addresses).
-                if source_type == "address_record":
-                    source_resp = zcql.execute_query(f"SELECT * FROM addresses WHERE id = '{source_id}'")
-                    if source_resp:
-                        source_record = source_resp[0].get("addresses", {})
-                else:
-                    # Mock response for external records since we don't own those tables (or they are synthetic)
-                    source_record = {"id": source_id, "type": source_type, "note": "External record (Track A or non-relational table)"}
+            source_record = {"id": edge_data.get("source_id"), "target": edge_data.get("target_id"), "note": f"Edge weight: {weight}"}
                     
             return jsonify({
                 "relation": relation,
-                "source_record_type": source_type,
+                "source_record_type": "derived_edge",
                 "source_record": source_record
             }), 200
             

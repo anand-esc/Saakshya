@@ -35,7 +35,13 @@ import os
 import sys
 
 _cur = os.path.dirname(os.path.abspath(__file__))
-for _p in [_cur, os.path.join(_cur, "shared"), os.path.join(_cur, "..", "shared")]:
+_possible_paths = [
+    _cur,
+    os.path.join(_cur, "shared"),
+    os.path.join(_cur, "..", "shared"),
+    os.path.join(_cur, "..", "..", "..", "functions", "shared")
+]
+for _p in _possible_paths:
     if os.path.exists(_p) and _p not in sys.path:
         sys.path.insert(0, _p)
 from db_utils import get_table_rows  # noqa: E402
@@ -96,8 +102,8 @@ def compute_hotspots(district_id, catalyst_app=None):
     if not district_stations:
         return {"cells": []}
 
-    lats = [s["lat"] for s in district_stations]
-    lngs = [s["lng"] for s in district_stations]
+    lats = [float(s["lat"]) for s in district_stations]
+    lngs = [float(s["lng"]) for s in district_stations]
     # bounding box padded a bit beyond station spread so hotspots near the
     # edge of the district aren't clipped
     pad = 0.05
@@ -118,8 +124,8 @@ def compute_hotspots(district_id, catalyst_app=None):
         ]
         return {"cells": cells}
 
-    incident_points = np.array([(i["lat"], i["lng"]) for i in district_incidents])
-    incident_weeks = [_week_key(i["timestamp"]) for i in district_incidents]
+    incident_points = np.array([(float(i["lat"]), float(i["lng"])) for i in district_incidents])
+    incident_weeks = [_week_key(i["time_stamp"]) for i in district_incidents]
 
     kde = gaussian_kde(incident_points.T)
     densities = kde(grid_points.T)
@@ -154,12 +160,16 @@ def handler(request):
     except Exception:
         app = None
 
-    district_id = request.args.get("district_id")
-    if not district_id:
-        return make_response(jsonify({"error": "district_id query parameter is required"}), 400)
+    try:
+        district_id = request.args.get("district_id")
+        if not district_id:
+            return make_response(jsonify({"error": "district_id query parameter is required"}), 400)
 
-    result = compute_hotspots(district_id, catalyst_app=app)
-    return make_response(jsonify(result), 200)
+        result = compute_hotspots(district_id, catalyst_app=app)
+        return make_response(jsonify(result), 200)
+    except Exception as e:
+        import traceback
+        return make_response(jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500)
 
 
 if __name__ == "__main__":

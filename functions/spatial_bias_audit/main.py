@@ -35,7 +35,13 @@ import os
 import sys
 
 _cur = os.path.dirname(os.path.abspath(__file__))
-for _p in [_cur, os.path.join(_cur, "shared"), os.path.join(_cur, "..", "shared")]:
+_possible_paths = [
+    _cur,
+    os.path.join(_cur, "shared"),
+    os.path.join(_cur, "..", "shared"),
+    os.path.join(_cur, "..", "..", "..", "functions", "shared")
+]
+for _p in _possible_paths:
     if os.path.exists(_p) and _p not in sys.path:
         sys.path.insert(0, _p)
 from db_utils import get_table_rows  # noqa: E402
@@ -51,11 +57,14 @@ def compute_bias_audit(catalyst_app=None):
 
     results = []
     for district_id, rows in sorted(by_district.items()):
+        def _bool(val):
+            return str(val).lower() in ("true", "1", "yes")
+
         false_positives = sum(
-            1 for r in rows if r["predicted_risk_flag"] and not r["incident_occurred"]
+            1 for r in rows if _bool(r.get("predicted_risk_flag")) and not _bool(r.get("incident_occurred"))
         )
         true_negatives = sum(
-            1 for r in rows if not r["predicted_risk_flag"] and not r["incident_occurred"]
+            1 for r in rows if not _bool(r.get("predicted_risk_flag")) and not _bool(r.get("incident_occurred"))
         )
         denom = false_positives + true_negatives
         fpr = round(false_positives / denom, 4) if denom else None
@@ -81,8 +90,12 @@ def handler(request):
     except Exception:
         app = None
 
-    result = compute_bias_audit(catalyst_app=app)
-    return make_response(jsonify(result), 200)
+    try:
+        result = compute_bias_audit(catalyst_app=app)
+        return make_response(jsonify(result), 200)
+    except Exception as e:
+        import traceback
+        return make_response(jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500)
 
 
 if __name__ == "__main__":
