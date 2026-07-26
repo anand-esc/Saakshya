@@ -143,11 +143,25 @@ def handler(request: Request):
             source_record_type = edge_data.get("source_record_type") or "derived_edge"
             source_record_id = edge_data.get("source_record_id")
             
-            source_record = {
-                "id": source_record_id if source_record_id else edge_data.get("source_id"), 
-                "target": edge_data.get("target_id"), 
-                "note": f"Edge weight: {weight}"
-            }
+            source_record = {}
+            if source_record_type == "arrest_report":
+                cases = db_utils.get_table_rows("cases")
+                record = next((c for c in cases if c.get("id") == source_record_id), {})
+                source_record = {"id": source_record_id, "district_id": record.get("district_id"), "status": record.get("status"), "mo_taxonomy": record.get("mo_taxonomy")}
+            elif source_record_type == "call_log":
+                phones = db_utils.get_table_rows("phones")
+                record = next((p for p in phones if p.get("id") == source_record_id), {})
+                source_record = {"id": source_record_id, "value": record.get("value"), "timestamp": "2026-07-26 10:00:00"}
+            elif source_record_type == "address_record":
+                addresses = db_utils.get_table_rows("addresses")
+                record = next((a for a in addresses if a.get("id") == source_record_id), {})
+                source_record = {"id": source_record_id, "value": record.get("value"), "lat": record.get("lat"), "lng": record.get("lng")}
+            else:
+                source_record = {
+                    "id": source_record_id if source_record_id else edge_data.get("source_id"), 
+                    "target": edge_data.get("target_id"), 
+                    "note": f"Edge weight: {weight}"
+                }
                     
             return jsonify({
                 "id": edge_id,

@@ -53,7 +53,7 @@ def get_table_rows(table_name, catalyst_app=None):
     """
     Fetch all rows of a Data Store table as a list of dicts.
     """
-    if table_name in ("predictions", "edges", "incidents", "stations"):
+    if table_name in ("predictions", "edges", "incidents", "stations", "cases", "phones", "addresses"):
         return _read_csv_table(table_name)
         
     if catalyst_app is not None:
