@@ -48,6 +48,38 @@ def _read_csv_table(table_name):
         reader = csv.DictReader(f)
         return [{k: _coerce(v) for k, v in row.items()} for row in reader]
 
+def _write_csv_table(table_name, row_dict):
+    path = os.path.join(SEED_DIR, f"{table_name}.csv")
+    file_exists = os.path.exists(path)
+    
+    # Read existing headers if file exists, else use keys
+    fieldnames = list(row_dict.keys())
+    if file_exists:
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            existing_headers = next(reader, None)
+            if existing_headers:
+                fieldnames = existing_headers
+                # Add any new keys from row_dict that aren't in headers
+                for key in row_dict.keys():
+                    if key not in fieldnames:
+                        fieldnames.append(key)
+                        
+    # Rewrite with updated headers if necessary, or just append
+    # To keep it simple and robust for this demo: just read all, append, write all
+    rows = []
+    if file_exists:
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            
+    rows.append(row_dict)
+    
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
 
 def get_table_rows(table_name, catalyst_app=None):
     """
@@ -88,3 +120,16 @@ def get_table_rows(table_name, catalyst_app=None):
             ) from exc
 
     return _read_csv_table(table_name)
+
+def insert_table_row(table_name, row_dict, catalyst_app=None):
+    if table_name in ("action_log", "predictions", "edges", "incidents", "stations", "cases", "phones", "addresses"):
+        _write_csv_table(table_name, row_dict)
+        return True
+        
+    if catalyst_app is not None:
+        datastore = catalyst_app.datastore()
+        table = datastore.table(table_name)
+        table.insert_row(row_dict)
+        return True
+        
+    return False

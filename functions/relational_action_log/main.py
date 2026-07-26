@@ -3,6 +3,19 @@ import uuid
 from datetime import datetime
 from flask import Request, jsonify
 import zcatalyst_sdk
+import os
+import sys
+_cur = os.path.dirname(os.path.abspath(__file__))
+_possible_paths = [
+    _cur,
+    os.path.join(_cur, "shared"),
+    os.path.join(_cur, "..", "shared"),
+    os.path.join(_cur, "..", "..", "..", "functions", "shared")
+]
+for _p in _possible_paths:
+    if os.path.exists(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
+import db_utils
 
 def handler(request: Request):
     app = zcatalyst_sdk.initialize()
@@ -63,11 +76,8 @@ def handler(request: Request):
                 "action_timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             }
             
-            # Use datastore insert (with try/except for local MVP demo to prevent 502)
-            try:
-                insert_resp = table.insert_row(new_log)
-            except Exception as insert_e:
-                logger.warning(f"Data Store insert failed (demo mode fallback): {insert_e}")
+            # Use db_utils insert (will write to CSV fallback locally or Data Store in prod)
+            db_utils.insert_table_row("action_log", new_log, app)
             
             return jsonify({
                 "target_type": target_type,
@@ -82,3 +92,4 @@ def handler(request: Request):
 
     else:
         return jsonify({"error": "Not Found"}), 404
+# trigger reload
